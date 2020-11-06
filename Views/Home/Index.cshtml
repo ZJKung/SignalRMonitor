@@ -1,0 +1,41 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+<script src="~/js/signalr/dist/browser/signalr.js"></script>
+<script src="https://unpkg.com/vue@next"></script>
+<body>
+    <div class="text-center" id="app">
+        <h1 class="display-4">Welcome</h1>
+        <h2>TIME : {{time}}</h2>
+        <div><span>CPU : {{stats.CPU}}</span><span>Memory Avaliable : {{stats.RAM}}</span></div>
+        <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+    </div>
+</body>
+<script>   
+    const App = {
+        data() {
+            return {
+                stats: {"CPU":"0","RAM":"0"},
+                time:null
+            }
+        },
+        mounted() {
+            const connection = new signalR.HubConnectionBuilder()
+                                        .withUrl('/statsHub')
+                                        .build();
+            connection.on('SendMonitorData', (d)=> {
+               this.stats=JSON.parse(d);
+            });
+
+            connection.start().then(()=>{
+                connection.invoke("GetMonitor").catch((err)=>{
+                    console.error(err);
+                });
+            });
+            setInterval(() => {
+                this.time=Date.now();
+            }, 1000);
+        }
+    };
+Vue.createApp(App).mount('#app');
+</script>
