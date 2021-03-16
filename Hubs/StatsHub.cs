@@ -1,28 +1,40 @@
 using Microsoft.AspNetCore.SignalR;
 using SignalRMonitor.Service;
-using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Text.Json;
+using System.Threading;
+using Microsoft.Extensions.Logging;
+
 namespace SignalRMonitor.Hubs
 {
     public class StatsHub : Hub
     {
         private StatService _statService;
+
+
         public StatsHub(StatService statService)
         {
             _statService = statService;
+            //_logger = logger;
         }
         public async Task GetMonitor()
         {
-            while (1 == 1)
+            while (true)
             {
-                await Clients.All.SendAsync("SendMonitorData", JsonSerializer.Serialize(new { CPU = _statService.getCurrentCpuUsage(), RAM = _statService.getAvailableRAM() }));
+                float cpuUsage = _statService.getCurrentCpuUsage();
+
+                float memUsage = _statService.getUsageRAM();
+
+                //System.Console.WriteLine($"CPU : {cpuUsage} RAM : {memUsage}");
+
+                await Clients.All.SendAsync("SendMonitorData", JsonSerializer.Serialize(
+                                new
+                                {
+                                    CPU = cpuUsage,
+                                    RAM = memUsage
+                                }));
                 await Task.Delay(1000);
             }
-            // while(!cancellationToken.IsCancellationRequested){
-
-            // }
         }
     }
 }

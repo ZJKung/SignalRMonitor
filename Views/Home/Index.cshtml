@@ -3,39 +3,105 @@
 }
 <script src="~/js/signalr/dist/browser/signalr.js"></script>
 <script src="https://unpkg.com/vue@next"></script>
+<script src="https://unpkg.com/@@vueuse/shared"></script>
+<script src="https://unpkg.com/@@vueuse/core"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+
 <body>
     <div class="text-center" id="app">
-        <h1 class="display-4">Welcome</h1>
-        <h2>TIME : {{time}}</h2>
-        <div><span>CPU : {{stats.CPU}}</span><span>Memory Avaliable : {{stats.RAM}}</span></div>
-        <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+        <div><span>CPU : {{stats.CPU}} % </span><span> Memory Usage : {{stats.RAM}} MB</span></div>
+        <div>
+            <canvas id="cpu" style="width: 512px; height: 320px"></canvas>
+            <canvas id="ram" style="width: 512px; height: 320px"></canvas>
+        </div>
     </div>
 </body>
-<script>   
-    const App = {
-        data() {
-            return {
-                stats: {"CPU":"0","RAM":"0"},
-                time:null
-            }
-        },
-        mounted() {
-            const connection = new signalR.HubConnectionBuilder()
-                                        .withUrl('/statsHub')
-                                        .build();
-            connection.on('SendMonitorData', (d)=> {
-               this.stats=JSON.parse(d);
-            });
+<script>
+    const { ref, onMounted, watch, computed, reactive } = Vue;
+    const app = Vue.createApp({
+        setup() {
+            const samples = 100;
+            const speed = 250;
+            const cpuValues = reactive([])
+            const memValues = reactive([])
+            const labels = [];
+            labels.length = samples;
+            labels.fill(0);
+            cpuValues.length = samples;
+            cpuValues.fill(0);
 
-            connection.start().then(()=>{
-                connection.invoke("GetMonitor").catch((err)=>{
-                    console.error(err);
+            memValues.length = samples;
+            memValues.fill(0);
+            const stats = reactive({
+                CPU: 0,
+                RAM: 0
+            });
+            const drawChart = (canvasObject, values) => {
+                return new Chart(canvasObject,
+                    {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                {
+                                    data: values,
+                                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                                    borderColor: 'rgb(255, 99, 132)',
+                                    borderWidth: 2,
+                                    lineTension: 0.25,
+                                    pointRadius: 0
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: false,
+                            animation: {
+                                duration: speed * 1.5,
+                                easing: 'linear'
+                            },
+                            legend: false,
+                            scales: {
+                                xAxes: [
+                                    {
+                                        display: false
+                                    }
+                                ],
+                                yAxes: [
+
+                                ]
+                            }
+                        }
+                    });
+            }
+            onMounted(() => {
+
+                const connection = new signalR.HubConnectionBuilder().withUrl("/statsHub").build();
+                connection.start().then(() => {
+                    connection.invoke("GetMonitor").catch((err) => {
+                        console.error(err);
+                    });
+                });
+                connection.on('SendMonitorData', (data) => {
+                    let json = JSON.parse(data);
+                    stats.CPU = json.CPU;
+                    stats.RAM = json.RAM;
+                    cpuValues.push(stats.CPU);
+                    cpuValues.shift();
+                    memValues.push(stats.RAM);
+                    memValues.shift();
                 });
             });
-            setInterval(() => {
-                this.time=Date.now();
-            }, 1000);
+            watch(cpuValues, value => {
+                let cpuChart = drawChart(document.getElementById("cpu"), cpuValues);
+                cpuChart.destroy();
+                cpuChart = drawChart(document.getElementById("cpu"), cpuValues);
+            })
+            watch(memValues, value => {
+                let memChart = drawChart(document.getElementById("ram"), memValues);
+                memChart.destroy();
+                memChart = drawChart(document.getElementById("ram"), memValues);
+            })
+            return { stats };
         }
-    };
-Vue.createApp(App).mount('#app');
+    }).mount("#app");
 </script>
