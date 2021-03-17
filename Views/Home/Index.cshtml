@@ -5,21 +5,28 @@
 <script src="https://unpkg.com/vue@next"></script>
 <script src="https://unpkg.com/@@vueuse/shared"></script>
 <script src="https://unpkg.com/@@vueuse/core"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+<script src="https://www.chartjs.org/dist/2.9.4/Chart.min.js"></script>
 
 <body>
     <div class="text-center" id="app">
-        <div><span>CPU : {{stats.CPU}} % </span><span> Memory Usage : {{stats.RAM}} MB</span></div>
+        <div>
+            <span>CPU : {{stats.CPU}} % </span><span> Memory Usage : {{stats.RAM}} MB</span>
+            <input type="button" value="Use Memory" @@click="useMemory()">
+            <input type="button" value="Use CPU" @@click="useCPU()">
+        </div>
+
         <div>
             <canvas id="cpu" style="width: 512px; height: 320px"></canvas>
             <canvas id="ram" style="width: 512px; height: 320px"></canvas>
         </div>
+
     </div>
 </body>
 <script>
-    const { ref, onMounted, watch, computed, reactive } = Vue;
+    const { watch, onMounted, reactive } = Vue;
     const app = Vue.createApp({
         setup() {
+            const connection = new signalR.HubConnectionBuilder().withUrl("/statsHub").build();
             const samples = 100;
             const speed = 250;
             const cpuValues = reactive([])
@@ -36,7 +43,7 @@
                 CPU: 0,
                 RAM: 0
             });
-            const drawChart = (canvasObject, values) => {
+            const drawChart = (canvasObject, values, title) => {
                 return new Chart(canvasObject,
                     {
                         type: 'line',
@@ -55,9 +62,13 @@
                         },
                         options: {
                             responsive: false,
-                            animation: {
+                            /*animation: {
                                 duration: speed * 1.5,
                                 easing: 'linear'
+                            },*/
+                            title: {
+                                display: true,
+                                text: title
                             },
                             legend: false,
                             scales: {
@@ -73,9 +84,17 @@
                         }
                     });
             }
+            const useMemory = () => {
+                connection.invoke("UseMemory").catch((err) => {
+                    console.error(err);
+                });
+            }
+            const useCPU = () => {
+                connection.invoke("UseCPU").catch(err => {
+                    console.error(err)
+                });
+            }
             onMounted(() => {
-
-                const connection = new signalR.HubConnectionBuilder().withUrl("/statsHub").build();
                 connection.start().then(() => {
                     connection.invoke("GetMonitor").catch((err) => {
                         console.error(err);
@@ -92,16 +111,14 @@
                 });
             });
             watch(cpuValues, value => {
-                let cpuChart = drawChart(document.getElementById("cpu"), cpuValues);
-                cpuChart.destroy();
-                cpuChart = drawChart(document.getElementById("cpu"), cpuValues);
+                let cpuChart = drawChart(document.getElementById("cpu"), cpuValues, `CPU Usage ${cpuValues[cpuValues.length - 1]} %`);
+                cpuChart.update();
             })
             watch(memValues, value => {
-                let memChart = drawChart(document.getElementById("ram"), memValues);
-                memChart.destroy();
-                memChart = drawChart(document.getElementById("ram"), memValues);
+                let memChart = drawChart(document.getElementById("ram"), memValues, `RAM Usage ${memValues[memValues.length - 1]} MB`);
+                memChart.update();
             })
-            return { stats };
+            return { stats, useMemory, useCPU };
         }
     }).mount("#app");
 </script>
