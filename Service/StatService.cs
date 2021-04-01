@@ -10,7 +10,7 @@ namespace SignalRMonitor.Service
         public StatService()
         {
             cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
-            ramCounter = new PerformanceCounter("Memory", "Available MBytes");
+            ramCounter = new PerformanceCounter("Memory", "Available MBytes", true);
         }
         public float getCurrentCpuUsage()
         {

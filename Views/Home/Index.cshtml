@@ -6,6 +6,8 @@
 <script src="https://unpkg.com/@@vueuse/shared"></script>
 <script src="https://unpkg.com/@@vueuse/core"></script>
 <script src="https://www.chartjs.org/dist/2.9.4/Chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
 
 <body>
     <div class="text-center" id="app">
@@ -85,14 +87,10 @@
                     });
             }
             const useMemory = () => {
-                connection.invoke("UseMemory").catch((err) => {
-                    console.error(err);
-                });
+                axios.post('/ram').then(r => console.log(r)).catch(e => console.error(e));
             }
             const useCPU = () => {
-                connection.invoke("UseCPU").catch(err => {
-                    console.error(err)
-                });
+                axios.post('/cpu').then(r => console.log(r)).catch(e => console.error(e));
             }
             onMounted(() => {
                 connection.start().then(() => {
