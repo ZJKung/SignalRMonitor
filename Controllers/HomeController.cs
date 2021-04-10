@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -11,7 +12,6 @@ namespace SignalRMonitor.Controllers
 {
     public class HomeController : Controller
     {
-        private static List<byte[]> MemoryMonster = new List<byte[]>();
         private readonly ILogger<HomeController> _logger;
 
         public HomeController(ILogger<HomeController> logger)
@@ -32,7 +32,6 @@ namespace SignalRMonitor.Controllers
         [HttpPost("/cpu")]
         public async Task<IActionResult> UseCPU()
         {
-            Console.WriteLine("c");
             var timeout = DateTime.Now.AddSeconds(5);
             while (DateTime.Now.CompareTo(timeout) < 0)
             {
@@ -42,18 +41,18 @@ namespace SignalRMonitor.Controllers
             return Ok();
         }
         [HttpPost("/ram")]
-        public async Task<IActionResult> UseRAM()
+        public void UseRAM()
         {
             byte[] buff = new byte[1024 * 1024 * 1024];
-            for (var i = 0; i < buff.Length; i++) buff[i] = (byte)(i % 256);
-            MemoryMonster.Add(buff);
+            for (var i = 0; i < buff.Length; i++) buff[i] = (byte)(i);
             //Sleep 5 seconds to keep the memory space "active"
-            await Task.Delay(5000);
+            Thread.Sleep(5000);
             //release memory
-            MemoryMonster = new List<byte[]>();
-            return Ok();
+            buff = null;
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
         }
-
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()

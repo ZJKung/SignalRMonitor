@@ -28,7 +28,7 @@ namespace SignalRMonitor.Hubs
 
                 //System.Console.WriteLine($"CPU : {cpuUsage} RAM : {memUsage}");
 
-                await Clients.All.SendAsync("SendMonitorData", JsonSerializer.Serialize(
+                await Clients.Client(Context.ConnectionId).SendAsync("SendMonitorData", JsonSerializer.Serialize(
                                 new
                                 {
                                     CPU = cpuUsage,
