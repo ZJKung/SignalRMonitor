@@ -2,12 +2,9 @@
     ViewData["Title"] = "Home Page";
 }
 <script src="~/js/signalr/dist/browser/signalr.js"></script>
-<script src="https://unpkg.com/vue@next"></script>
-<script src="https://unpkg.com/@@vueuse/shared"></script>
-<script src="https://unpkg.com/@@vueuse/core"></script>
-<script src="https://www.chartjs.org/dist/2.9.4/Chart.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-
+<script src="~/js/vue/vue.global.js"></script>
+<script src="~/js/axios/axios.min.js"></script>
+<script src="~/js/chartjs/Chart.min.js"></script>
 
 <body>
     <div class="text-center" id="app">
@@ -63,26 +60,13 @@
                             ]
                         },
                         options: {
-                            responsive: false,
-                            /*animation: {
-                                duration: speed * 1.5,
-                                easing: 'linear'
-                            },*/
+                            responsive: true,
+                            showTooltips: false,
                             title: {
                                 display: true,
                                 text: title
                             },
                             legend: false,
-                            scales: {
-                                xAxes: [
-                                    {
-                                        display: false
-                                    }
-                                ],
-                                yAxes: [
-
-                                ]
-                            }
                         }
                     });
             }
@@ -106,6 +90,8 @@
                     cpuValues.shift();
                     memValues.push(stats.RAM);
                     memValues.shift();
+                    labels.push(new Date().toTimeString().split(' ')[0]);
+                    labels.shift();
                 });
             });
             watch(cpuValues, value => {
