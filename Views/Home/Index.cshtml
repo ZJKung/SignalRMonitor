@@ -50,6 +50,7 @@
                             labels: labels,
                             datasets: [
                                 {
+                                    label:title,
                                     data: values,
                                     backgroundColor: 'rgba(255, 99, 132, 0.1)',
                                     borderColor: 'rgb(255, 99, 132)',
@@ -62,9 +63,11 @@
                         options: {
                             responsive: true,
                             showTooltips: false,
-                            title: {
-                                display: true,
-                                text: title
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text:title
+                                }
                             },
                             legend: false,
                         }
@@ -76,7 +79,25 @@
             const useCPU = () => {
                 axios.post('/cpu').then(r => console.log(r)).catch(e => console.error(e));
             }
+            const addData=(chart, label, data) =>{
+                chart.data.labels.push(label);
+                chart.data.datasets.forEach((dataset) => {
+                    dataset.data.push(data);
+                });
+                chart.update();
+            }
+            const removeData=(chart)=> {
+                chart.data.labels.pop();
+                chart.data.datasets.forEach((dataset) => {
+                    dataset.data.pop();
+                });
+                chart.update();
+            }
             onMounted(() => {
+                let cpuCanvas= document.getElementById('cpu').getContext('2d');
+                let ramCanvas = document.getElementById('ram').getContext('2d');
+                let cpuChart = drawChart(cpuCanvas,cpuValues,`CPU Usage`);
+                let ramChart = drawChart(ramCanvas,memValues,`RAM Usage`);
                 connection.start().then(() => {
                     connection.invoke("GetMonitor").catch((err) => {
                         console.error(err);
@@ -86,22 +107,15 @@
                     let json = JSON.parse(data);
                     stats.CPU = json.CPU;
                     stats.RAM = json.RAM;
-                    cpuValues.push(stats.CPU);
-                    cpuValues.shift();
-                    memValues.push(stats.RAM);
-                    memValues.shift();
-                    labels.push(new Date().toTimeString().split(' ')[0]);
-                    labels.shift();
+                    addData(cpuChart,new Date().toTimeString().split(' ')[0],json.CPU);
+                    addData(ramChart,new Date().toTimeString().split(' ')[0],json.RAM);
+                    if(cpuChart.data.labels.length>sample)
+                    {
+                        removeData(cpuChart,new Date().toTimeString().split(' ')[0],json.CPU);
+                        removeData(ramChart,new Date().toTimeString().split(' ')[0],json.RAM);
+                    }
                 });
             });
-            watch(cpuValues, value => {
-                let cpuChart = drawChart(document.getElementById("cpu"), cpuValues, `CPU Usage ${cpuValues[cpuValues.length - 1]} %`);
-                cpuChart.update();
-            })
-            watch(memValues, value => {
-                let memChart = drawChart(document.getElementById("ram"), memValues, `RAM Usage ${memValues[memValues.length - 1]} MB`);
-                memChart.update();
-            })
             return { stats, useMemory, useCPU };
         }
     }).mount("#app");
